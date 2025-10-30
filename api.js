@@ -10,7 +10,15 @@ import {route as stations} from './routes/stations.js'
 import {route as station} from './routes/station.js'
 import {parseString} from 'hafas-rest-api/lib/parse.js'
 import {enrichStation} from 'db-vendo-client/parse/location.js'
-import pkg from './package.json' with { type: 'json' }
+
+// Package metadata - inlined for Cloudflare Workers compatibility
+// Update this when package.json version changes
+const pkg = {
+	name: 'db-rest',
+	description: 'A clean REST API wrapping around the Deutsche Bahn API.',
+	version: '6.1.1',
+	homepage: 'https://github.com/derhuerst/db-rest/tree/6',
+}
 
 const berlinHbf = '8011160'
 

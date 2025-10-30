@@ -1,6 +1,22 @@
-# Cloudflare Workers Deployment Guide
+# Cloudflare Workers Compatibility Status
 
-This project has been made compatible with Cloudflare Workers. This guide explains the changes made and how to deploy.
+⚠️ **CURRENT STATUS: PARTIAL COMPATIBILITY - REQUIRES ADDITIONAL WORK**
+
+This project has been significantly refactored for Cloudflare Workers compatibility, but **additional work is needed** due to deep Node.js dependencies. This document explains what has been done, current limitations, and next steps.
+
+## ⚠️ Current Limitations
+
+### Blocking Issues
+1. **db-stations and db-stations-autocomplete** use `createRequire()` to load JSON data, which doesn't work in Cloudflare Workers
+2. These modules require Node.js streams and file system access
+3. Runtime error: `createRequire()` receives undefined in bundled environment
+
+### Status
+- ✅ Redis removed successfully
+- ✅ File system operations removed from main code
+- ✅ Process.env replaced with environment parameters
+- ✅ Bundling succeeds with JSON import fixes
+- ❌ Runtime fails due to `createRequire` in dependencies
 
 ## What Changed
 
@@ -23,23 +39,28 @@ After (Cloudflare Workers):
 worker.js → api.js → HAFAS API (no caching)
 ```
 
-## Quick Start
+## Installation & Setup
 
 ### 1. Install Dependencies
 ```bash
 npm install
 ```
 
-### 2. Local Development
-```bash
-npm run dev
-```
-This starts Wrangler dev server on http://localhost:3000
+The post-install script automatically fixes JSON import syntax in `db-vendo-client` to be compatible with the bundler.
 
-### 3. Deploy to Cloudflare Workers
+### 2. Current Development Status
+**Node.js (WORKING)**:
 ```bash
-npm run deploy
+npm start
 ```
+
+**Cloudflare Workers (NOT YET WORKING)**:
+```bash
+npm run dev  # Will start but fail at runtime
+```
+
+### 3. Deployment
+❌ Deployment is not yet functional due to the blocking issues listed above.
 
 ## Configuration
 
@@ -138,6 +159,41 @@ After deployment:
 ```bash
 curl https://your-worker.workers.dev/stations?query=Berlin
 ```
+
+## Next Steps to Complete Cloudflare Workers Compatibility
+
+### Option 1: Fork and Patch Dependencies (Recommended)
+1. Fork `db-stations` and `db-stations-autocomplete`
+2. Replace `createRequire()` with direct JSON imports or bundle data differently
+3. Remove Node.js stream dependencies
+4. Use forked versions in package.json
+
+### Option 2: Pre-bundle Station Data
+1. Create a build script that pre-processes station data at build time
+2. Embed data directly in the worker bundle
+3. Bypass the need for runtime JSON loading
+
+### Option 3: Use Alternative Data Loading
+1. Store station data in Cloudflare KV or D1
+2. Load data from KV at runtime instead of from JSON files
+3. Trade build complexity for runtime flexibility
+
+## Technical Details
+
+### Files Modified for Compatibility
+- `api.js`: Inlined package.json metadata, removed all Node.js-specific APIs
+- `worker.js`: Uses `@whatwg-node/server` adapter to convert Express app to fetch handler
+- `wrangler.toml`: Configured with `nodejs_compat` and updated compatibility_date
+- `scripts/fix-imports.js`: Post-install script to fix JSON import syntax
+- `lib/db-stations.js`: Removed `statSync` and file operations
+- `routes/stations.js`: Removed `process.exit()` calls
+
+### Dependencies Added
+- `@whatwg-node/server`: Converts Node.js HTTP servers to fetch handlers
+
+### Dependencies Removed
+- `ioredis`: Redis client (as requested)
+- `serve-static`: Static file middleware
 
 ## Troubleshooting
 
