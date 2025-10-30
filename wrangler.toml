@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Environment variables
 [vars]
-HOSTNAME = "db-rest.example.com"
+HOSTNAME = "db.api.rail.expert"
 PORT = "443"
 
 # For production, set these as secrets using:
