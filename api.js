@@ -1,4 +1,4 @@
-import {createClient, loadEnrichedStationData} from 'db-vendo-client'
+import {createClient} from 'db-vendo-client'
 import {defaultProfile} from 'db-vendo-client/lib/default-profile.js'
 import {profile as dbProfile} from 'db-vendo-client/p/db/index.js'
 import {profile as dbnavProfile} from 'db-vendo-client/p/dbnav/index.js'
@@ -9,7 +9,6 @@ import {mapRouteParsers} from 'db-vendo-client/lib/api-parsers.js'
 import {route as stations} from './routes/stations.js'
 import {route as station} from './routes/station.js'
 import {parseString} from 'hafas-rest-api/lib/parse.js'
-import {enrichStation} from 'db-vendo-client/parse/location.js'
 
 // Package metadata - inlined for Cloudflare Workers compatibility
 // Update this when package.json version changes
@@ -24,11 +23,13 @@ const berlinHbf = '8011160'
 
 // Create API with environment configuration
 const createApi = async (env = {}) => {
-	const stationIndex = await loadEnrichedStationData(defaultProfile);
 	const userAgent = env.USER_AGENT || env.HAFAS_USER_AGENT || pkg.name;
-	const opt = {
-		enrichStations: (ctx, stop) => enrichStation(ctx, stop, stationIndex)
-	}
+
+	// Note: Station enrichment disabled for Cloudflare Workers compatibility
+	// loadEnrichedStationData uses file system APIs not available in Workers
+	// Stations will still work but won't have enriched metadata
+	const opt = {}
+
 	const profileClients = {
 		'db': createClient(dbProfile, userAgent, opt),
 		'dbnav': createClient(dbnavProfile, userAgent, opt),
@@ -101,7 +102,7 @@ const createApi = async (env = {}) => {
 		version: pkg.version,
 		docsLink: 'https://github.com/derhuerst/db-rest/blob/6/docs/readme.md',
 		openapiSpec: true,
-		logging: true,
+		logging: false, // Disabled for Cloudflare Workers compatibility (pino-http not supported)
 		aboutPage: false,
 		etags: 'strong',
 		csp: `default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https:`,
