@@ -1,0 +1,26 @@
+name = "db-rest"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables
+[vars]
+HOSTNAME = "db-rest.example.com"
+PORT = "443"
+
+# For production, set these as secrets using:
+# npx wrangler secret put USER_AGENT
+# npx wrangler secret put HAFAS_USER_AGENT
+
+# Optional: Configure custom domain
+# routes = [
+#   { pattern = "db-rest.example.com", custom_domain = true }
+# ]
+
+# Build configuration
+# [build]
+# command = "npm run build"
+
+# Development configuration
+[dev]
+port = 3000

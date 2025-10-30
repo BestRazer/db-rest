@@ -34,8 +34,10 @@ const pAllStations = pStations.then(({data, timeModified}) => {
 	}
 })
 .catch((err) => {
-	console.error(err)
-	process.exit(1)
+	console.error('Error loading stations:', err)
+	// Note: In Cloudflare Workers, errors should be handled gracefully
+	// The promise will reject and be handled by the route handler
+	throw err
 })
 
 const err = (msg, statusCode = 500) => {
