@@ -9,11 +9,16 @@ function expressToWorkers(expressApp) {
 		return new Promise((resolve, reject) => {
 			const url = new URL(request.url)
 
+			// Filter out Accept-Encoding header to prevent compression
+			// Cloudflare handles compression automatically at the edge
+			const headers = Object.fromEntries(request.headers)
+			delete headers['accept-encoding']
+
 			// Create mock Node.js request
 			const nodeReq = {
 				method: request.method,
 				url: url.pathname + url.search,
-				headers: Object.fromEntries(request.headers),
+				headers: headers,
 				// Express expects these
 				httpVersion: '1.1',
 				httpVersionMajor: 1,
