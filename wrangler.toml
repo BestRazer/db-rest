@@ -13,9 +13,9 @@ PORT = "443"
 # npx wrangler secret put HAFAS_USER_AGENT
 
 # Optional: Configure custom domain
-# routes = [
-#   { pattern = "db-rest.example.com", custom_domain = true }
-# ]
+routes = [
+   { pattern = "db.api.rail.expert", custom_domain = true }
+ ]
 
 # Build configuration
 # [build]
