@@ -25,10 +25,12 @@ const berlinHbf = '8011160'
 const createApi = async (env = {}) => {
 	const userAgent = env.USER_AGENT || env.HAFAS_USER_AGENT || pkg.name;
 
-	// Note: Station enrichment disabled for Cloudflare Workers compatibility
-	// loadEnrichedStationData uses file system APIs not available in Workers
-	// Stations will still work but won't have enriched metadata
-	const opt = {}
+	// IMPORTANT: Explicitly disable station enrichment for Cloudflare Workers
+	// If enrichStations is undefined, db-vendo-client will try to load station data
+	// from db-hafas-stations which uses fs.createReadStream (not available in Workers)
+	const opt = {
+		enrichStations: false
+	}
 
 	const profileClients = {
 		'db': createClient(dbProfile, userAgent, opt),
