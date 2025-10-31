@@ -1,23 +1,100 @@
-import {createServerAdapter} from '@whatwg-node/server'
 import {createApi} from './api.js'
 
-// Cache the API instance and adapter to reuse across requests
-let fetchHandler = null
+// Cache the API instance to reuse across requests
+let apiInstance = null
+
+// Manual Express-to-Workers adapter
+function expressToWorkers(expressApp) {
+	return async (request) => {
+		return new Promise((resolve, reject) => {
+			const url = new URL(request.url)
+
+			// Create mock Node.js request
+			const nodeReq = {
+				method: request.method,
+				url: url.pathname + url.search,
+				headers: Object.fromEntries(request.headers),
+				// Express expects these
+				httpVersion: '1.1',
+				httpVersionMajor: 1,
+				httpVersionMinor: 1,
+			}
+
+			// Create mock Node.js response
+			const chunks = []
+			const nodeRes = {
+				statusCode: 200,
+				statusMessage: 'OK',
+				headers: {},
+				finished: false,
+				headersSent: false,
+
+				setHeader(name, value) {
+					this.headers[name.toLowerCase()] = String(value)
+				},
+				getHeader(name) {
+					return this.headers[name.toLowerCase()]
+				},
+				removeHeader(name) {
+					delete this.headers[name.toLowerCase()]
+				},
+				hasHeader(name) {
+					return name.toLowerCase() in this.headers
+				},
+
+				writeHead(statusCode, statusMessage, headers) {
+					this.statusCode = statusCode
+					if (typeof statusMessage === 'object') {
+						headers = statusMessage
+					} else if (statusMessage) {
+						this.statusMessage = statusMessage
+					}
+					if (headers) {
+						Object.entries(headers).forEach(([k, v]) => this.setHeader(k, v))
+					}
+					this.headersSent = true
+				},
+
+				write(chunk) {
+					chunks.push(Buffer.from(chunk))
+				},
+
+				end(chunk) {
+					if (chunk) {
+						chunks.push(Buffer.from(chunk))
+					}
+					this.finished = true
+
+					const body = chunks.length > 0 ? Buffer.concat(chunks) : ''
+					resolve(new Response(body, {
+						status: this.statusCode,
+						statusText: this.statusMessage,
+						headers: this.headers,
+					}))
+				},
+			}
+
+			// Handle the request with Express
+			try {
+				expressApp(nodeReq, nodeRes)
+			} catch (error) {
+				reject(error)
+			}
+		})
+	}
+}
 
 export default {
 	async fetch(request, env, ctx) {
 		try {
-			// Initialize API once and create adapter
-			if (!fetchHandler) {
+			// Initialize API once
+			if (!apiInstance) {
 				const {api} = await createApi(env)
-
-				// Create a fetch handler from the Node.js HTTP server (Express app)
-				// The api is an Express app, which we can convert to a fetch handler
-				fetchHandler = createServerAdapter(api)
+				apiInstance = expressToWorkers(api)
 			}
 
-			// Use the adapter to handle the request
-			return await fetchHandler(request, env, ctx)
+			// Handle the request
+			return await apiInstance(request)
 		} catch (error) {
 			console.error('Worker error:', error)
 			return new Response(JSON.stringify({
