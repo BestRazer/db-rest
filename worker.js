@@ -9,10 +9,11 @@ function expressToWorkers(expressApp) {
 		return new Promise((resolve, reject) => {
 			const url = new URL(request.url)
 
-			// Filter out Accept-Encoding header to prevent compression
-			// Cloudflare handles compression automatically at the edge
+			// Explicitly disable compression by setting Accept-Encoding to "identity"
+			// The compression middleware in hafas-rest-api is hardcoded and will
+			// compress if Accept-Encoding is missing, so we must explicitly request no encoding
 			const headers = Object.fromEntries(request.headers)
-			delete headers['accept-encoding']
+			headers['accept-encoding'] = 'identity'
 
 			// Create mock Node.js request
 			const nodeReq = {
